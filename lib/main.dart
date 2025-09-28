@@ -5,6 +5,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'core/services/background_service.dart';
+import 'core/services/elo_update_service.dart';
+import 'core/services/firebase_service.dart';
 import 'firebase_options.dart';
 import 'core/services/auth_service.dart';
 import 'core/services/user_service.dart';
@@ -100,13 +102,20 @@ class AuthWrapper extends StatelessWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-
+        FirebaseService.auth.authStateChanges().listen((user) {
+          if (user != null) {
+            EloUpdateService.checkAndUpdateUserElo(user.uid);
+          }
+        });
         if (snapshot.hasData) {
+
           return const HomeScreen();
+
         }
 
         return const LoginScreen();
       },
+
     );
   }
 }

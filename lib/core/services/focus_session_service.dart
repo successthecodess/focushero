@@ -14,11 +14,12 @@ class FocusSessionService extends ChangeNotifier {
   final UserService _userService;
 
   FocusSession? _currentSession;
+  FocusSession? _lastCompletedSession;
   Timer? _timer;
-  int _pomodoroCount =
-      0; // Tracks which pomodoro we're on (0-3, resets to 0 after long break)
+  int _pomodoroCount = 0; // Tracks which pomodoro we're on (0-3, resets to 0 after long break)
 
   FocusSession? get currentSession => _currentSession;
+  FocusSession? get lastCompletedSession => _lastCompletedSession;
   bool get isTimerRunning => _timer != null && _timer!.isActive;
 
   FocusSessionService(this._userService);
@@ -84,9 +85,9 @@ class FocusSessionService extends ChangeNotifier {
     if (user == null) return;
 
     final duration =
-        isLongBreak
-            ? (_userPreferences?.longBreakDuration ?? 15)
-            : (_userPreferences?.breakDuration ?? 5);
+    isLongBreak
+        ? (_userPreferences?.longBreakDuration ?? 15)
+        : (_userPreferences?.breakDuration ?? 5);
 
     _currentSession = FocusSession(
       id: '',
@@ -196,6 +197,9 @@ class FocusSessionService extends ChangeNotifier {
 
     await _updateSession();
 
+    // Store the last completed session before clearing current
+    _lastCompletedSession = _currentSession;
+
     // If it was a focus session, update user stats
     if (_currentSession!.type == SessionType.focus) {
       await _updateUserStats();
@@ -292,14 +296,14 @@ class FocusSessionService extends ChangeNotifier {
     final startOfToday = DateTime(today.year, today.month, today.day);
 
     final todaysSessions =
-        await _firestore
-            .collection('users')
-            .doc(user.uid)
-            .collection('sessions')
-            .where('completedAt', isGreaterThanOrEqualTo: startOfToday)
-            .where('type', isEqualTo: 'focus')
-            .where('status', isEqualTo: 'completed')
-            .get();
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('sessions')
+        .where('completedAt', isGreaterThanOrEqualTo: startOfToday)
+        .where('type', isEqualTo: 'focus')
+        .where('status', isEqualTo: 'completed')
+        .get();
 
     if (todaysSessions.docs.isNotEmpty) {
       // Update streak
@@ -315,15 +319,15 @@ class FocusSessionService extends ChangeNotifier {
       final endOfYesterday = startOfToday;
 
       final yesterdaysSessions =
-          await _firestore
-              .collection('users')
-              .doc(user.uid)
-              .collection('sessions')
-              .where('completedAt', isGreaterThanOrEqualTo: startOfYesterday)
-              .where('completedAt', isLessThan: endOfYesterday)
-              .where('type', isEqualTo: 'focus')
-              .where('status', isEqualTo: 'completed')
-              .get();
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('sessions')
+          .where('completedAt', isGreaterThanOrEqualTo: startOfYesterday)
+          .where('completedAt', isLessThan: endOfYesterday)
+          .where('type', isEqualTo: 'focus')
+          .where('status', isEqualTo: 'completed')
+          .get();
 
       if (yesterdaysSessions.docs.isNotEmpty) {
         newStreak = user.currentStreak + 1;
@@ -379,10 +383,10 @@ class FocusSessionService extends ChangeNotifier {
         .snapshots()
         .map(
           (snapshot) =>
-              snapshot.docs
-                  .map((doc) => FocusSession.fromMap(doc.data(), doc.id))
-                  .toList(),
-        );
+          snapshot.docs
+              .map((doc) => FocusSession.fromMap(doc.data(), doc.id))
+              .toList(),
+    );
   }
 
   // Get today's completed sessions count
@@ -391,14 +395,14 @@ class FocusSessionService extends ChangeNotifier {
     final startOfToday = DateTime(today.year, today.month, today.day);
 
     final snapshot =
-        await _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('sessions')
-            .where('completedAt', isGreaterThanOrEqualTo: startOfToday)
-            .where('type', isEqualTo: 'focus')
-            .where('status', isEqualTo: 'completed')
-            .get();
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('sessions')
+        .where('completedAt', isGreaterThanOrEqualTo: startOfToday)
+        .where('type', isEqualTo: 'focus')
+        .where('status', isEqualTo: 'completed')
+        .get();
 
     return snapshot.docs.length;
   }

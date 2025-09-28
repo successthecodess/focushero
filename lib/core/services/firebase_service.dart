@@ -1,4 +1,5 @@
 // Replace lib/core/services/firebase_service.dart with this version
+import '../models/elo_rating.dart';
 import '/core/services/task_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -40,6 +41,7 @@ class FirebaseService {
         'currentStreak': 0,
         'longestStreak': 0,
         'achievements': [],
+        'eloRating': EloRating.initial().toMap(),
         'preferences': {
           'focusDuration': 25,
           'breakDuration': 5,
@@ -52,7 +54,13 @@ class FirebaseService {
       final updates = <String, dynamic>{
         'lastLoginAt': FieldValue.serverTimestamp(),
       };
-
+      final userData = docSnapshot.data() as Map<String, dynamic>;
+      if (userData['eloRating'] == null) {
+        await userDoc.update({
+          'eloRating': EloRating.initial().toMap(),
+        });
+      }
+    
       // Sync display name from Firebase Auth if it exists
       if (user.displayName != null && user.displayName!.isNotEmpty) {
         final userData = docSnapshot.data() as Map<String, dynamic>;
